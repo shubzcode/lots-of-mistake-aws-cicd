@@ -1,6 +1,10 @@
 pipeline {
     agent any
 
+    environment {
+        DOCKER_IMAGE = 'shubzcode/azure-docker-cicd'
+    }
+
     stages {
 
         stage('Checkout') {
@@ -17,24 +21,44 @@ pipeline {
 
         stage('Build Docker Image') {
             steps {
-                bat 'docker build -t azure-docker-cicd:%BUILD_NUMBER% .'
+                bat 'docker build -t %DOCKER_IMAGE%:%BUILD_NUMBER% .'
+            }
+        }
+
+        stage('Docker Login') {
+            steps {
+                withCredentials([
+                    usernamePassword(
+                        credentialsId: 'dockerhub-credentials',
+                        usernameVariable: 'DOCKER_USER',
+                        passwordVariable: 'DOCKER_PASSWORD'
+                    )
+                ]) {
+                    bat 'docker login -u "%DOCKER_USER%" -p "%DOCKER_PASSWORD%"'
+                }
+            }
+        }
+
+        stage('Push Docker Image') {
+            steps {
+                bat 'docker push %DOCKER_IMAGE%:%BUILD_NUMBER%'
             }
         }
 
         stage('Verify Image') {
             steps {
-                bat 'docker images azure-docker-cicd'
+                bat 'docker images %DOCKER_IMAGE%'
             }
         }
     }
 
     post {
         success {
-            echo '✅ CI pipeline completed successfully!'
+            echo '✅ CI/CD image build and push completed successfully!'
         }
 
         failure {
-            echo '❌ CI pipeline failed. Check the console output.'
+            echo '❌ Pipeline failed. Check the console output.'
         }
     }
 }
