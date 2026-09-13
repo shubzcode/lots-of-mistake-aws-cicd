@@ -19,27 +19,27 @@ pipeline {
             }
         }
 
+        stage('Docker Login') {
+            steps {
+                withCredentials([
+                    usernamePassword(
+                        credentialsId: 'dockerhub-credentials',
+                        usernameVariable: 'DOCKER_USER',
+                        passwordVariable: 'DOCKER_PASSWORD'
+                    )
+                ]) {
+                    bat '''
+                        echo %DOCKER_PASSWORD% | docker login -u "%DOCKER_USER%" --password-stdin
+                    '''
+                }
+            }
+        }
+
         stage('Build Docker Image') {
             steps {
                 bat 'docker build -t %DOCKER_IMAGE%:%BUILD_NUMBER% .'
             }
         }
-
-stage('Docker Login') {
-    steps {
-        withCredentials([
-            usernamePassword(
-                credentialsId: 'dockerhub-credentials',
-                usernameVariable: 'DOCKER_USER',
-                passwordVariable: 'DOCKER_PASSWORD'
-            )
-        ]) {
-            bat '''
-                echo %DOCKER_PASSWORD% | docker login -u "%DOCKER_USER%" --password-stdin
-            '''
-        }
-    }
-}
 
         stage('Push Docker Image') {
             steps {
